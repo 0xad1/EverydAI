@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="description" content="Your personal daily briefing on AI, business, markets, startups and ideas.">
+  <title>EverydAI | Your daily briefing</title>
+  <link rel="stylesheet" href="{{ '/styles.css' | url }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ '/' | url }}" aria-label="EverydAI home">
+      <span class="brand-mark">E</span>
+      <span>Everyd<span class="brand-ai">AI</span></span>
+    </a>
+    <span class="topbar-note">YOUR PERSONAL INTELLIGENCE BRIEFING</span>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow"><span class="live-dot"></span> YOUR DAILY READING DESK</div>
+      <h1>Stay curious.<br><span>Stay a step ahead.</span></h1>
+      <p class="hero-copy">
+        A considered feed of ideas, developments and signals across AI,
+        business, markets, startups and marketing.
+      </p>
+      <div class="briefing-meta">
+        <span id="today-date">YOUR DAILY BRIEFING</span>
+        <span class="meta-divider">/</span>
+        <span><strong id="article-count">{{ articles | length }}</strong> ARTICLES COLLECTED</span>
+      </div>
+    </section>
+
+    <section class="feed-section" aria-label="News articles">
+      <div class="feed-heading">
+        <div>
+          <p class="section-kicker">THE FEED</p>
+          <h2>What’s worth your attention</h2>
+        </div>
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="Search stories..." aria-label="Search stories">
+          <kbd>/</kbd>
+        </label>
+      </div>
+
+      <nav class="filters" id="category-filters" aria-label="Filter by category">
+        <button class="filter active" data-category="all" aria-pressed="true">All stories</button>
+      </nav>
+
+      <div class="feed-status">
+        <span id="results-label">LATEST STORIES</span>
+        <span>OPEN ORIGINAL SOURCES ↗</span>
+      </div>
+
+      <div class="article-list" id="article-list">
+        {% for article in articles %}
+        <article class="article-card"
+          data-category="{{ article.category | default('Other') }}"
+          data-search="{{ (article.title ~ ' ' ~ article.source ~ ' ' ~ article.summary ~ ' ' ~ article.category) | lower }}">
+          <div class="article-main">
+            <div class="article-meta">
+              <span class="category-label">{{ article.category | default('Other') }}</span>
+              <span class="meta-dot">·</span>
+              <span class="source-label">{{ article.source | default('Unknown source') }}</span>
+              <span class="meta-dot">·</span>
+              <time class="article-date" data-date="{{ article.published | default('') }}">
+                {{ article.published | default('Recently collected') }}
+              </time>
+            </div>
+            <h3>
+              <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">
+                {{ article.title }}
+              </a>
+            </h3>
+            <p class="article-summary">
+              {{ article.summary | default('Open the original source to read the full story.', true) }}
+            </p>
+            <a class="read-link" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">
+              Read original <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <div class="article-index" aria-hidden="true">{{ loop.index }}</div>
+        </article>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">↗</div>
+          <h3>Your reading desk is getting ready.</h3>
+          <p>No stories have been collected yet. Run the news collector, then rebuild the site.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div id="no-results" class="empty-state" hidden>
+        <div class="empty-icon">⌕</div>
+        <h3>No stories found.</h3>
+        <p>Try another search or select a different category.</p>
+        <button id="clear-filters" class="text-button">Clear search and filters</button>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <a class="footer-brand" href="{{ '/' | url }}">EverydAI</a>
+      <p>Read widely. Think clearly. Connect the dots.</p>
+      <span>INDEPENDENT READING DESK · BUILT FOR YOU</span>
+    </footer>
+  </main>
+
+  <script>
+    const cards = [...document.querySelectorAll(".article-card")];
+    const filterContainer = document.getElementById("category-filters");
+    const searchInput = document.getElementById("search-input");
+    const noResults = document.getElementById("no-results");
+    const resultsLabel = document.getElementById("results-label");
+    const countLabel = document.getElementById("article-count");
+
+    let selectedCategory = "all";
+
+    const categories = [...new Set(
+      cards.map(card => card.dataset.category).filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+
+    categories.forEach(category => {
+      const button = document.createElement("button");
+      button.className = "filter";
+      button.dataset.category = category;
+      button.textContent = category;
+      button.setAttribute("aria-pressed", "false");
+      filterContainer.appendChild(button);
+    });
+
+    function applyFilters() {
+      const query = searchInput.value.trim().toLowerCase();
+      let visible = 0;
+
+      cards.forEach(card => {
+        const matchesCategory =
+          selectedCategory === "all" ||
+          card.dataset.category === selectedCategory;
+        const matchesSearch =
+          (card.dataset.search || "").includes(query);
+        const show = matchesCategory && matchesSearch;
+
+        card.hidden = !show;
+        if (show) visible++;
+      });
+
+      filterContainer.querySelectorAll("button").forEach(button => {
+        const active = button.dataset.category === selectedCategory;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+
+      noResults.hidden = visible !== 0;
+      resultsLabel.textContent = query || selectedCategory !== "all"
+        ? `${visible} MATCHING STORIES`
+        : "LATEST STORIES";
+
+      countLabel.textContent = visible;
+    }
+
+    filterContainer.addEventListener("click", event => {
+      const button = event.target.closest("button[data-category]");
+      if (!button) return;
+      selectedCategory = button.dataset.category;
+      applyFilters();
+    });
+
+    searchInput.addEventListener("input", applyFilters);
+
+    document.getElementById("clear-filters").addEventListener("click", () => {
+      selectedCategory = "all";
+      searchInput.value = "";
+      applyFilters();
+    });
+
+    document.addEventListener("keydown", event => {
+      const tag = document.activeElement?.tagName;
+      if (event.key === "/" && !["INPUT", "TEXTAREA"].includes(tag)) {
+        event.preventDefault();
+        searchInput.focus();
+      }
+      if (event.key === "Escape" && document.activeElement === searchInput) {
+        searchInput.value = "";
+        applyFilters();
+        searchInput.blur();
+      }
+    });
+
+    const now = new Date();
+    document.getElementById("today-date").textContent =
+      now.toLocaleDateString("en-IN", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }).toUpperCase();
+
+    document.querySelectorAll(".article-date").forEach(time => {
+      const value = time.dataset.date;
+      if (!value) {
+        time.textContent = "Date unavailable";
+        return;
+      }
+      const date = new Date(value);
+      time.textContent = Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric"
+          });
+      if (!Number.isNaN(date.getTime())) time.dateTime = date.toISOString();
+    });
+
+    applyFilters();
+  </script>
+</body>
+</html>
