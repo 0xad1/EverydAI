@@ -30,6 +30,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Diagnose repository files
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Checked-out commit:"
+          git rev-parse HEAD
+          echo "Root directory contents:"
+          ls -la
+          echo "Tracked requirements files:"
+          git ls-tree -r --name-only HEAD | grep -i requirements || true
+          echo "Find requirements file:"
+          find . -maxdepth 4 -iname '*requirements*' -print
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -42,7 +55,7 @@ jobs:
         run: python scripts/fetch_news.py
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
